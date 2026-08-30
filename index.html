@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Rescisão CLT com FGTS</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 480px;
+        }
+        h2 {
+            text-align: center;
+            color: #38bdf8;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            background-color: #0f172a;
+            color: #fff;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #0284c7;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0369a1;
+        }
+        .result {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #0f172a;
+            border-left: 4px solid #38bdf8;
+            border-radius: 4px;
+            display: none;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ade80;
+            border-top: 1px solid #475569;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Simulador de Rescisão + FGTS</h2>
+    
+    <label for="salario">Salário Bruto (R$)</label>
+    <input type="number" id="salario" placeholder="Ex: 2500" required>
+
+    <label for="meses">Meses Trabalhados</label>
+    <input type="number" id="meses" placeholder="Ex: 14" required>
+
+    <label for="motivo">Motivo da Saída</label>
+    <select id="motivo" onchange="verificarMotivo()">
+        <option value="semJusta">Demissão Sem Justa Causa</option>
+        <option value="pedido">Pedido de Demissão</option>
+    </select>
+
+    <button onclick="calcularRescisao()">Calcular Valores</button>
+
+    <div id="resultado" class="result">
+        <div class="result-item"><span>Aviso Prévio Indenizado:</span> <span id="aviso">R$ 0,00</span></div>
+        <div class="result-item"><span>13º Salário Proporcional:</span> <span id="decimo">R$ 0,00</span></div>
+        <div class="result-item"><span>Férias Proporcionais + 1/3:</span> <span id="ferias">R$ 0,00</span></div>
+        <div class="result-item" id="bloco-fgts"><span>Saldo do FGTS Acumulado:</span> <span id="fgtsSaldo">R$ 0,00</span></div>
+        <div class="result-item" id="bloco-multa"><span>Multa Rescisória (40%):</span> <span id="fgtsMulta">R$ 0,00</span></div>
+        <div class="result-item total"><span>Total Estimado a Receber:</span> <span id="total">R$ 0,00</span></div>
+    </div>
+</div>
+
+<script>
+function verificarMotivo() {
+    const motivo = document.getElementById('motivo').value;
+    const blocoMulta = document.getElementById('bloco-multa');
+    
+    // Se for pedido de demissão, o funcionário perde o direito à multa de 40% e ao saque do FGTS na rescisão
+    if (motivo === "pedido") {
+        blocoMulta.style.opacity = "0.5";
+    } else {
+        blocoMulta.style.opacity = "1";
+    }
+}
+
+function calcularRescisao() {
+    const salario = parseFloat(document.getElementById('salario').value);
+    const meses = parseInt(document.getElementById('meses').value);
+    const motivo = document.getElementById('motivo').value;
+
+    if (isNaN(salario) || isNaN(meses)) {
+        alert("Por favor, preencha os campos de salário e meses corretamente.");
+        return;
+    }
+
+    // 1. Cálculos de Verbas Rescisórias Padrão
+    let decimoProporcional = (salario / 12) * (meses % 12);
+    let feriasProporcionais = ((salario / 12) * (meses % 12)) * 1.3333;
+    let avisoPrevio = 0;
+
+    // 2. Cálculos do FGTS (8% do salário ao mês)
+    let fgtsAcumulado = (salario * 0.08) * meses;
+    let multaFGTS = 0;
+    let totalGeral = 0;
+
+    if (motivo === "semJusta") {
+        avisoPrevio = salario; 
+        multaFGTS = fgtsAcumulado * 0.40;
+        // Na demissão sem justa causa, o funcionário saca o aviso, 13º, férias, o saldo do FGTS e a multa
+        totalGeral = avisoPrevio + decimoProporcional + feriasProporcionais + fgtsAcumulado + multaFGTS;
+        
+        document.getElementById('bloco-fgts').style.display = 'flex';
+        document.getElementById('bloco-multa').style.display = 'flex';
+    } else {
+        avisoPrevio = 0;
+        multaFGTS = 0;
+        // No pedido de demissão, o FGTS fica retido na Caixa, o funcionário não saca e não tem multa
+        totalGeral = decimoProporcional + feriasProporcionais;
+        
+        document.getElementById('bloco-fgts').style.display = 'flex';
+        document.getElementById('fgtsSaldo').innerText = "R$ " + fgtsAcumulado.toFixed(2) + " (Retido)";
+        document.getElementById('bloco-multa').style.display = 'none';
+    }
+
+    // Inserir os resultados formatados na tela
+    document.getElementById('aviso').innerText = "R$ " + avisoPrevio.toFixed(2);
+    document.getElementById('decimo').innerText = "R$ " + decimoProporcional.toFixed(2);
+    document.getElementById('ferias').innerText = "R$ " + feriasProporcionais.toFixed(2);
+    
+    if (motivo === "semJusta") {
+        document.getElementById('fgtsSaldo').innerText = "R$ " + fgtsAcumulado.toFixed(2);
+    }
+    document.getElementById('fgtsMulta').innerText = "R$ " + multaFGTS.toFixed(2);
+    document.getElementById('total').innerText = "R$ " + totalGeral.toFixed(2);
+
+    // Exibir o bloco de resultados
+    document.getElementById('resultado').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
